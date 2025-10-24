@@ -1,176 +1,67 @@
-// DOM elements
-const form = document.querySelector('.calculator-form');
-const presentInput = document.getElementById('present');
-const totalInput = document.getElementById('total');
-const percentageSelect = document.getElementById('percentage');
-const resultDiv = document.getElementById('result');
+const percentageSelect = document.getElementById("percentage");
+const presentInput = document.getElementById("present-input");
+const totalInput = document.getElementById("total-input");
+const btn = document.getElementById("btn");
+const outputDiv = document.getElementById("output-div");
+const banner = document.getElementById("banner");
 
-// Form submission handler
-form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Get input values
-    const present = parseInt(presentInput.value);
-    const total = parseInt(totalInput.value);
-    const requiredPercentage = parseInt(percentageSelect.value);
-    
-    // Validate inputs
-    if (!validateInputs(present, total)) {
-        return;
-    }
-    
-    // Calculate attendance
-    calculateAttendance(present, total, requiredPercentage);
+btn.addEventListener("click", () => {
+  let present = parseInt(presentInput.value);
+  let total = parseInt(totalInput.value);
+  let percentage = parseInt(percentageSelect.value);
+  
+  if (isNaN(present) || isNaN(total) || isNaN(percentage)) {
+    return (outputDiv.innerText = "Proper values please ¯\\_(ツ)_/¯");
+  }
+
+  if (present < 0 || total <= 0 || present > total) {
+    return (outputDiv.innerText = "Proper values please ¯\\_(ツ)_/¯");
+  }
+
+  if (present / total >= percentage / 100) {
+    const daysAvailableToBunk = daysToBunk(present, total, percentage);
+    return (outputDiv.innerHTML = daysToBunkText(
+      daysAvailableToBunk,
+      present,
+      total
+    ));
+  }
+
+  const attendanceNeeded = reqAttendance(present, total, percentage);
+  return (outputDiv.innerHTML = daysToAttendClassText(
+    attendanceNeeded,
+    present,
+    total,
+    percentage
+  ));
 });
 
-// Input validation
-function validateInputs(present, total) {
-    // Clear previous result
-    hideResult();
-    
-    // Check for empty values
-    if (isNaN(present) || isNaN(total)) {
-        showResult('Please enter valid numbers for both fields.', 'error');
-        return false;
-    }
-    
-    // Check for negative values
-    if (present < 0 || total < 0) {
-        showResult('Please enter positive numbers only.', 'error');
-        return false;
-    }
-    
-    // Check if present is greater than total
-    if (present > total) {
-        showResult('Present classes cannot be greater than total classes.', 'error');
-        return false;
-    }
-    
-    // Check if total is zero
-    if (total === 0) {
-        showResult('Total classes cannot be zero.', 'error');
-        return false;
-    }
-    
-    return true;
-}
+const reqAttendance = (present, total, percentage) => {
+  return Math.ceil((percentage * total - 100 * present) / (100 - percentage));
+};
 
-// Calculate attendance and show result
-function calculateAttendance(present, total, requiredPercentage) {
-    const currentPercentage = (present / total) * 100;
-    const requiredPercentageDecimal = requiredPercentage / 100;
-    
-    if (currentPercentage >= requiredPercentage) {
-        // Student can bunk more classes
-        const maxAbsent = Math.floor(total * (1 - requiredPercentageDecimal));
-        const currentAbsent = total - present;
-        const canBunk = maxAbsent - currentAbsent;
-        
-        if (canBunk > 0) {
-            const newTotal = total + 1;
-            const newPercentage = (present / newTotal) * 100;
-            
-            showResult(`
-                <div class="result-line">You can bunk for <span class="bold">${canBunk}</span> more days.</div>
-                <div class="result-line">Current Attendance: <span class="bold">${present}/${total} → ${currentPercentage.toFixed(2)}%</span></div>
-                <div class="result-line">Attendance Then: <span class="bold">${present}/${newTotal} → ${newPercentage.toFixed(2)}%</span></div>
-            `, 'success');
-        } else if (canBunk === 0) {
-            showResult(`
-                <div class="result-line">You are at the minimum attendance requirement (${requiredPercentage}%). You cannot bunk any more classes.</div>
-                <div class="result-line">Current Attendance: <span class="bold">${present}/${total} → ${currentPercentage.toFixed(2)}%</span></div>
-            `, 'info');
-        } else {
-            const needToAttend = Math.abs(canBunk);
-            showResult(`
-                <div class="result-line">You need to attend <span class="bold">${needToAttend}</span> more classes to reach ${requiredPercentage}%.</div>
-                <div class="result-line">Current Attendance: <span class="bold">${present}/${total} → ${currentPercentage.toFixed(2)}%</span></div>
-            `, 'error');
-        }
-    } else {
-        // Student needs to attend more classes
-        const requiredPresent = Math.ceil(total * requiredPercentageDecimal);
-        const needToAttend = requiredPresent - present;
-        
-        if (needToAttend <= total - present) {
-            showResult(`
-                <div class="result-line">You need to attend <span class="bold">${needToAttend}</span> more classes to reach ${requiredPercentage}%.</div>
-                <div class="result-line">Current Attendance: <span class="bold">${present}/${total} → ${currentPercentage.toFixed(2)}%</span></div>
-            `, 'error');
-        } else {
-            showResult(`
-                <div class="result-line">It's not possible to reach ${requiredPercentage}% attendance with the current total classes.</div>
-                <div class="result-line">Current Attendance: <span class="bold">${present}/${total} → ${currentPercentage.toFixed(2)}%</span></div>
-            `, 'error');
-        }
-    }
-}
+const daysToBunk = (present, total, percentage) => {
+  return Math.floor((100 * present - percentage * total) / percentage);
+};
 
-// Show result with animation
-function showResult(message, type) {
-    resultDiv.innerHTML = message;
-    resultDiv.className = `result ${type}`;
-    
-    // Trigger animation
-    setTimeout(() => {
-        resultDiv.classList.add('show');
-    }, 10);
-}
+const daysToBunkText = (daysAvailableToBunk, present, total) =>
+  `You can bunk for <strong>${daysAvailableToBunk}</strong> more days.<br>Current Attendance: <strong>${present}/${total}</strong> -> <strong>${(
+    (present / total) *
+    100
+  ).toFixed(2)}%</strong><br>Attendance Then: <strong>${present}/${
+    daysAvailableToBunk + total
+  }</strong> -> <strong>${(
+    (present / (daysAvailableToBunk + total)) *
+    100
+  ).toFixed(2)}%</strong>`;
 
-// Hide result
-function hideResult() {
-    resultDiv.classList.remove('show', 'success', 'error', 'info');
-    resultDiv.innerHTML = '';
-}
-
-// Real-time validation feedback
-presentInput.addEventListener('input', function() {
-    const present = parseInt(this.value);
-    const total = parseInt(totalInput.value);
-    
-    if (!isNaN(present) && !isNaN(total) && present > total) {
-        this.style.borderColor = '#dc3545';
-    } else {
-        this.style.borderColor = '#e0e0e0';
-    }
-});
-
-totalInput.addEventListener('input', function() {
-    const present = parseInt(presentInput.value);
-    const total = parseInt(this.value);
-    
-    if (!isNaN(present) && !isNaN(total) && present > total) {
-        presentInput.style.borderColor = '#dc3545';
-    } else {
-        presentInput.style.borderColor = '#e0e0e0';
-    }
-});
-
-// Clear validation styles on focus
-presentInput.addEventListener('focus', function() {
-    this.style.borderColor = '#e0e0e0';
-});
-
-totalInput.addEventListener('focus', function() {
-    this.style.borderColor = '#e0e0e0';
-});
-
-// Add smooth scrolling for better UX
-document.addEventListener('DOMContentLoaded', function() {
-    // Focus on first input for better accessibility
-    presentInput.focus();
-    
-    // Add keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            const activeElement = document.activeElement;
-            if (activeElement === presentInput) {
-                totalInput.focus();
-            } else if (activeElement === totalInput) {
-                percentageSelect.focus();
-            } else if (activeElement === percentageSelect) {
-                form.dispatchEvent(new Event('submit'));
-            }
-        }
-    });
-});
+const daysToAttendClassText = (attendanceNeeded, present, total, percentage) =>
+  `You need to attend <strong>${attendanceNeeded}</strong> more classes to attain ${percentage}% attendance<br>Current Attendance: <strong>${present}/${total}</strong> ->  <strong>${(
+    (present / total) *
+    100
+  ).toFixed(2)}%</strong><br>Attendance Required: <strong>${
+    attendanceNeeded + present
+  }/${attendanceNeeded + total}</strong> -> <strong>${(
+    ((attendanceNeeded + present) / (attendanceNeeded + total)) *
+    100
+  ).toFixed(2)}%</strong>`;

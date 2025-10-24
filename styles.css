@@ -167,6 +167,10 @@ body {
     font-weight: 700;
 }
 
+.result strong {
+    font-weight: 700;
+}
+
 /* Responsive design */
 @media (max-width: 480px) {
     body {
